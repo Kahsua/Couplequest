@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unser Faden</title>
+<title>CoupleQuest</title>
 <style>
   :root{
     --bg:#181119;
@@ -82,8 +82,14 @@
   .counter{
     margin-top:22px; display:inline-flex; gap:18px; flex-wrap:wrap; justify-content:center;
     padding:16px 22px; border:1px solid var(--line); border-radius:2px;
-    background:rgba(43,28,44,0.35);
+    background:rgba(43,28,44,0.35); cursor:pointer; transition:.2s; user-select:none;
   }
+  .counter:hover{ border-color:var(--gold); }
+  .counter-breakdown{ display:flex; gap:18px; flex-wrap:wrap; justify-content:center; }
+  .counter-total{ display:flex; align-items:baseline; gap:10px; padding:4px 10px; }
+  .counter-total .num-total{ font-size:34px; color:var(--gold-soft); font-variant-numeric: tabular-nums; }
+  .counter-total .lbl-total{ font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--cream-dim); font-family:-apple-system,sans-serif; }
+  .counter-hint{ margin-top:8px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--cream-dim); font-family:-apple-system,sans-serif; opacity:.6; }
   .counter .unit{ text-align:center; min-width:56px; }
   .counter .num{ font-size:26px; color:var(--gold-soft); font-variant-numeric: tabular-nums; display:block; }
   .counter .lbl{ font-size:10px; letter-spacing:.15em; text-transform:uppercase; color:var(--cream-dim); font-family:-apple-system,sans-serif; }
@@ -150,8 +156,26 @@
   .map-wrap{
     max-width:900px; margin:0 auto 30px; border:1px solid var(--line); border-radius:2px;
     background:radial-gradient(ellipse at 50% 30%, rgba(92,26,43,0.25), transparent 70%), var(--bg-panel);
-    padding:10px;
+    padding:10px; position:relative;
   }
+  .map-zoom-btn{
+    position:absolute; top:16px; right:16px; z-index:5;
+    background:var(--wine-deep); border:1px solid var(--gold); color:var(--gold-soft);
+    padding:6px 12px; border-radius:2px; cursor:pointer; font-family:-apple-system,sans-serif; font-size:12px;
+  }
+  .map-zoom-btn:hover{ background:var(--gold); color:var(--wine-deep); }
+  .map-modal{
+    display:none; position:fixed; inset:0; z-index:80; background:rgba(10,7,11,0.95);
+    align-items:center; justify-content:center; padding:30px;
+  }
+  .map-modal.open{ display:flex; }
+  .map-modal-inner{ width:100%; max-width:1400px; }
+  .map-modal-inner svg{ width:100%; height:auto; display:block; }
+  .map-modal-close{
+    position:absolute; top:24px; right:24px; background:var(--wine-deep); border:1px solid var(--gold);
+    color:var(--gold-soft); padding:8px 16px; border-radius:2px; cursor:pointer; font-family:-apple-system,sans-serif; font-size:13px;
+  }
+  .map-modal-close:hover{ background:var(--gold); color:var(--wine-deep); }
   #worldmap{ width:100%; height:auto; display:block; }
   #worldmap path{
     fill:#3a2a38; stroke:var(--bg-panel); stroke-width:0.4; cursor:pointer; transition:fill .25s;
@@ -182,6 +206,22 @@
   .country-controls button:hover{ background:var(--gold); color:var(--wine-deep); }
 
   .country-list{ max-width:560px; margin:0 auto; }
+  .country-list-tools{
+    max-width:560px; margin:0 auto 14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+    font-family:-apple-system,sans-serif;
+  }
+  .sort-toggle{ display:flex; border:1px solid var(--line); border-radius:2px; overflow:hidden; }
+  .sort-toggle button{
+    background:var(--bg-panel); border:none; color:var(--cream-dim); padding:8px 14px; cursor:pointer;
+    font-size:12px; font-family:-apple-system,sans-serif; letter-spacing:.04em;
+  }
+  .sort-toggle button.active{ background:var(--wine); color:var(--gold-soft); }
+  .sort-toggle button:hover{ color:var(--cream); }
+  #country-filter{
+    flex:1; min-width:160px; background:var(--bg-panel); border:1px solid var(--line); color:var(--cream);
+    padding:9px 12px; border-radius:2px; font-size:13px; outline:none; font-family:-apple-system,sans-serif;
+  }
+  #country-filter:focus{ border-color:var(--gold); }
   .country-list .item{
     display:flex; justify-content:space-between; align-items:center; gap:10px;
     padding:10px 14px; margin-bottom:6px; background:var(--bg-panel); border:1px solid var(--line);
@@ -208,7 +248,7 @@
   <div class="gate-card">
     <div class="thread"></div>
     <div class="gate-eyebrow">Privat &amp; Vertraulich</div>
-    <h1 class="gate-title">Unser Faden</h1>
+    <h1 class="gate-title">CoupleQuest</h1>
     <p class="gate-sub">Gib den Code ein, um einzutreten</p>
     <input id="gate-input" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
     <button id="gate-btn">Eintreten</button>
@@ -218,16 +258,23 @@
 
 <div id="app">
   <header class="hero">
-    <div class="eyebrow">Unser Faden</div>
+    <div class="eyebrow">CoupleQuest</div>
     <h1 class="title">Alles, was <em>uns</em> gehört</h1>
-    <div class="counter" id="counter">
-      <div class="unit"><span class="num" id="c-years">0</span><span class="lbl">Jahre</span></div>
-      <div class="unit"><span class="num" id="c-months">0</span><span class="lbl">Monate</span></div>
-      <div class="unit"><span class="num" id="c-days">0</span><span class="lbl">Tage</span></div>
-      <div class="unit"><span class="num" id="c-hours">0</span><span class="lbl">Std</span></div>
-      <div class="unit"><span class="num" id="c-mins">0</span><span class="lbl">Min</span></div>
-      <div class="unit"><span class="num" id="c-secs">0</span><span class="lbl">Sek</span></div>
+    <div class="counter" id="counter" title="Klicken zum Umschalten">
+      <div class="counter-breakdown" id="counter-breakdown">
+        <div class="unit"><span class="num" id="c-years">0</span><span class="lbl">Jahre</span></div>
+        <div class="unit"><span class="num" id="c-months">0</span><span class="lbl">Monate</span></div>
+        <div class="unit"><span class="num" id="c-days">0</span><span class="lbl">Tage</span></div>
+        <div class="unit"><span class="num" id="c-hours">0</span><span class="lbl">Std</span></div>
+        <div class="unit"><span class="num" id="c-mins">0</span><span class="lbl">Min</span></div>
+        <div class="unit"><span class="num" id="c-secs">0</span><span class="lbl">Sek</span></div>
+      </div>
+      <div class="counter-total" id="counter-total" style="display:none;">
+        <span class="num-total" id="c-total-num">0</span>
+        <span class="lbl-total" id="c-total-lbl">Tage insgesamt</span>
+      </div>
     </div>
+    <div class="counter-hint">Zum Umschalten antippen</div>
     <div class="since">zusammen seit dem 29.10.2022 um 00:29 Uhr</div>
   </header>
 
@@ -273,6 +320,7 @@
       <p>Tippe ein Land auf der Karte an oder wähle es unten aus.</p>
     </div>
     <div class="map-wrap">
+      <button class="map-zoom-btn" id="map-zoom-btn" onclick="openMapModal()">⤢ Vergrößern</button>
       <svg id="worldmap" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
     <div class="map-tip" id="map-tip"></div>
@@ -285,10 +333,22 @@
       <input type="number" id="country-year" placeholder="Jahr" min="1990" max="2100">
       <button onclick="addCountry()">Als besucht markieren</button>
     </div>
+    <div class="country-list-tools">
+      <div class="sort-toggle">
+        <button id="sort-alpha" class="active" onclick="setCountrySort('alpha')">A–Z</button>
+        <button id="sort-chrono" onclick="setCountrySort('chrono')">Zeitleiste</button>
+      </div>
+      <input type="text" id="country-filter" placeholder="Land oder Jahr suchen …" oninput="renderCountries()">
+    </div>
     <div class="country-list" id="country-list"></div>
   </section>
 
   <footer>gebaut für uns zwei</footer>
+</div>
+
+<div id="map-modal" class="map-modal">
+  <button class="map-modal-close" id="map-modal-close" onclick="closeMapModal()">✕ Schließen</button>
+  <div class="map-modal-inner" id="map-modal-inner"></div>
 </div>
 
 <script>
@@ -324,6 +384,19 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
 
 /* ============ Counter since ============ */
 const START = new Date(2022,9,29,0,29,0); // Monat 0-indexiert: 9 = Oktober
+const COUNTER_MODES = [
+  { key:'breakdown' },
+  { key:'days',    label:'Tage insgesamt' },
+  { key:'hours',   label:'Stunden insgesamt' },
+  { key:'minutes', label:'Minuten insgesamt' },
+  { key:'seconds', label:'Sekunden insgesamt' }
+];
+let counterModeIdx = 0;
+document.getElementById('counter').addEventListener('click', ()=>{
+  counterModeIdx = (counterModeIdx + 1) % COUNTER_MODES.length;
+  tickCounter();
+});
+
 function tickCounter(){
   const now = new Date();
   let diffMs = now - START;
@@ -339,12 +412,30 @@ function tickCounter(){
   if(d < 0){ m -= 1; const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0); d += prevMonth.getDate(); }
   if(m < 0){ y -= 1; m += 12; }
 
-  document.getElementById('c-years').textContent = y;
-  document.getElementById('c-months').textContent = m;
-  document.getElementById('c-days').textContent = d;
-  document.getElementById('c-hours').textContent = String(hours).padStart(2,'0');
-  document.getElementById('c-mins').textContent = String(mins).padStart(2,'0');
-  document.getElementById('c-secs').textContent = String(secs).padStart(2,'0');
+  const mode = COUNTER_MODES[counterModeIdx].key;
+  const breakdownEl = document.getElementById('counter-breakdown');
+  const totalEl = document.getElementById('counter-total');
+
+  if(mode === 'breakdown'){
+    breakdownEl.style.display = 'flex';
+    totalEl.style.display = 'none';
+    document.getElementById('c-years').textContent = y;
+    document.getElementById('c-months').textContent = m;
+    document.getElementById('c-days').textContent = d;
+    document.getElementById('c-hours').textContent = String(hours).padStart(2,'0');
+    document.getElementById('c-mins').textContent = String(mins).padStart(2,'0');
+    document.getElementById('c-secs').textContent = String(secs).padStart(2,'0');
+  } else {
+    breakdownEl.style.display = 'none';
+    totalEl.style.display = 'flex';
+    const totalSecs = Math.floor(diffMs/1000);
+    const totalMins = Math.floor(diffMs/60000);
+    const totalHours = Math.floor(diffMs/3600000);
+    const totalDaysAll = Math.floor(diffMs/86400000);
+    const values = { days: totalDaysAll, hours: totalHours, minutes: totalMins, seconds: totalSecs };
+    document.getElementById('c-total-num').textContent = values[mode].toLocaleString('de-DE');
+    document.getElementById('c-total-lbl').textContent = COUNTER_MODES[counterModeIdx].label;
+  }
 }
 setInterval(tickCounter, 1000);
 tickCounter();
@@ -500,9 +591,31 @@ function showTip(e, name){
 }
 function hideTip(){ document.getElementById('map-tip').style.display = 'none'; }
 
+function openMapModal(){
+  const svg = document.getElementById('worldmap');
+  document.getElementById('map-modal-inner').appendChild(svg);
+  document.getElementById('map-modal').classList.add('open');
+}
+function closeMapModal(){
+  const svg = document.getElementById('worldmap');
+  document.querySelector('.map-wrap').appendChild(svg);
+  document.getElementById('map-modal').classList.remove('open');
+}
+document.getElementById('map-modal').addEventListener('click', e=>{
+  if(e.target.id === 'map-modal') closeMapModal();
+});
+
 async function refreshCountries(){
   visited = {};
   (appData.laender || []).forEach(v=>{ visited[v.code] = v; });
+  renderCountries();
+}
+
+let countrySort = 'alpha';
+function setCountrySort(mode){
+  countrySort = mode;
+  document.getElementById('sort-alpha').classList.toggle('active', mode==='alpha');
+  document.getElementById('sort-chrono').classList.toggle('active', mode==='chrono');
   renderCountries();
 }
 
@@ -511,9 +624,36 @@ function renderCountries(){
     p.classList.toggle('visited', !!visited[p.dataset.code]);
   });
   const listEl = document.getElementById('country-list');
-  const entries = Object.values(visited).sort((a,b)=> (COUNTRIES[a.code]?.name||'').localeCompare(COUNTRIES[b.code]?.name||''));
-  document.getElementById('country-count').textContent = entries.length + (entries.length===1 ? ' Land gemeinsam bereist' : ' Länder gemeinsam bereist');
+  let entries = Object.values(visited);
+
+  const filterVal = (document.getElementById('country-filter')?.value || '').trim().toLowerCase();
+  if(filterVal){
+    entries = entries.filter(v=>{
+      const name = (COUNTRIES[v.code]?.name || '').toLowerCase();
+      const yearStr = v.year ? String(v.year) : '';
+      const monthStr = v.month ? MONTHS[v.month-1].toLowerCase() : '';
+      return name.includes(filterVal) || yearStr.includes(filterVal) || monthStr.includes(filterVal);
+    });
+  }
+
+  if(countrySort === 'chrono'){
+    entries.sort((a,b)=>{
+      const ak = a.year ? a.year*12 + (a.month||0) : Infinity;
+      const bk = b.year ? b.year*12 + (b.month||0) : Infinity;
+      if(ak !== bk) return ak - bk;
+      return (COUNTRIES[a.code]?.name||'').localeCompare(COUNTRIES[b.code]?.name||'');
+    });
+  } else {
+    entries.sort((a,b)=> (COUNTRIES[a.code]?.name||'').localeCompare(COUNTRIES[b.code]?.name||''));
+  }
+
+  const totalCount = Object.keys(visited).length;
+  document.getElementById('country-count').textContent = totalCount + (totalCount===1 ? ' Land gemeinsam bereist' : ' Länder gemeinsam bereist');
   listEl.innerHTML = '';
+  if(entries.length === 0){
+    listEl.innerHTML = '<div class="empty-hint">Keine Treffer.</div>';
+    return;
+  }
   entries.forEach(v=>{
     const name = COUNTRIES[v.code]?.name || v.code;
     const div = document.createElement('div');
