@@ -349,81 +349,37 @@ function tickCounter(){
 setInterval(tickCounter, 1000);
 tickCounter();
 
-/* ============ GitHub-Speicher ============ */
-/* Trage hier deine Zugangsdaten ein (siehe Anleitung im Chat). Diese Angaben
-   liegen im Klartext in dieser Datei — nur privat verwenden! */
-const GH_CONFIG = {
-  owner:  'Kahsua',
-  repo:   'Couplequest',
-  path:   'daten.json',
-  branch: 'main',
-  token:  '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'
-};
-
-const GH_API = `https://api.github.com/repos/${GH_CONFIG.owner}/${GH_CONFIG.repo}/contents/${encodeURIComponent(GH_CONFIG.path)}`;
-let ghSha = null; // aktueller Datei-Hash, für Konflikt-Erkennung beim Schreiben
-
-function utf8ToB64(str){
-  return btoa(unescape(encodeURIComponent(str)));
-}
-function b64ToUtf8(str){
-  return decodeURIComponent(escape(atob(str)));
-}
+/* ============ Firebase-Speicher ============ */
+const DB_URL = 'https://couplequest-2df3c-default-rtdb.europe-west1.firebasedatabase.app';
+const DATA_PATH = 'daten'; // Knotenname in der Datenbank
 
 const DEFAULT_DATA = { todoAlltag: [], todoOrte: [], laender: [] };
 
-async function ghLoad(){
+async function fbLoad(){
   try{
-    const res = await fetch(`${GH_API}?ref=${GH_CONFIG.branch}&t=${Date.now()}`, {
-      headers: {
-        'Authorization': `Bearer ${GH_CONFIG.token}`,
-        'Accept': 'application/vnd.github+json'
-      }
-    });
-    if(res.status === 404){ ghSha = null; return { ...DEFAULT_DATA }; }
-    if(!res.ok){ throw new Error('GitHub GET fehlgeschlagen: ' + res.status); }
+    const res = await fetch(`${DB_URL}/${DATA_PATH}.json?t=${Date.now()}`);
+    if(!res.ok){ throw new Error('Firebase GET fehlgeschlagen: ' + res.status); }
     const json = await res.json();
-    ghSha = json.sha;
-    const decoded = b64ToUtf8(json.content.replace(/\n/g,''));
-    return { ...DEFAULT_DATA, ...JSON.parse(decoded) };
+    return json ? { ...DEFAULT_DATA, ...json } : { ...DEFAULT_DATA };
   }catch(e){
     console.error('Laden fehlgeschlagen', e);
-    showSaveError('Laden fehlgeschlagen — Zugangsdaten in GH_CONFIG prüfen.');
+    showSaveError('Laden fehlgeschlagen — Datenbank-URL prüfen / Internetverbindung.');
     return { ...DEFAULT_DATA };
   }
 }
 
-async function ghSave(data){
+async function fbSave(data){
   try{
-    const body = {
-      message: 'Update ' + new Date().toISOString(),
-      content: utf8ToB64(JSON.stringify(data, null, 2)),
-      branch: GH_CONFIG.branch
-    };
-    if(ghSha) body.sha = ghSha;
-    const res = await fetch(GH_API, {
+    const res = await fetch(`${DB_URL}/${DATA_PATH}.json`, {
       method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${GH_CONFIG.token}`,
-        'Accept': 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
-    if(!res.ok){
-      if(res.status === 409){
-        showSaveError('Jemand hat gleichzeitig gespeichert — Seite neu laden und erneut versuchen.');
-      } else {
-        throw new Error('GitHub PUT fehlgeschlagen: ' + res.status);
-      }
-      return false;
-    }
-    const json = await res.json();
-    ghSha = json.content.sha;
+    if(!res.ok){ throw new Error('Firebase PUT fehlgeschlagen: ' + res.status); }
     return true;
   }catch(e){
     console.error('Speichern fehlgeschlagen', e);
-    showSaveError('Speichern fehlgeschlagen — Zugangsdaten/Internetverbindung prüfen.');
+    showSaveError('Speichern fehlgeschlagen — Datenbank-URL prüfen / Internetverbindung.');
     return false;
   }
 }
@@ -441,18 +397,19 @@ function showSaveError(msg){
   el._t = setTimeout(()=>{ el.remove(); }, 6000);
 }
 
-/* Zentraler Datenspeicher im Speicher (RAM) — Quelle der Wahrheit ist GitHub */
+/* Zentraler Datenspeicher im Speicher (RAM) — Quelle der Wahrheit ist Firebase */
 let appData = { ...DEFAULT_DATA };
 
-/* Führt eine Änderung aus: frisch von GitHub laden, Änderung anwenden, speichern, neu rendern */
+/* Führt eine Änderung aus: frisch von Firebase laden, Änderung anwenden, speichern, neu rendern */
 async function mutateData(updateFn){
-  appData = await ghLoad();
+  appData = await fbLoad();
   updateFn(appData);
   renderTodo('alltag');
   renderTodo('orte');
   renderCountries();
-  await ghSave(appData);
+  await fbSave(appData);
 }
+
 
 /* ============ Todo lists ============ */
 let todos = { alltag: [], orte: [] };
@@ -590,7 +547,7 @@ async function removeCountry(code){
 /* ============ Init ============ */
 let inited = false;
 async function pollData(){
-  appData = await ghLoad();
+  appData = await fbLoad();
   refreshTodos();
   refreshCountries();
 }
